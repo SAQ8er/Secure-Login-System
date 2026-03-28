@@ -1,0 +1,137 @@
+#include <iostream>
+#include <unordered_map>
+#include <string>
+#include <ctime>
+#include <cstdlib>
+
+using namespace std;
+
+// Simple hash function (for demonstration only)
+string hashPassword(const string &password, const string &salt) {
+    hash<string> hasher;
+    return to_string(hasher(password + salt));
+}
+
+// Generate random salt
+string generateSalt() {
+    return to_string(rand() % 1000000 + 100000);
+}
+
+// Generate OTP (6 digits)
+string generateOTP() {
+    return to_string(rand() % 900000 + 100000);
+}
+
+// User structure
+struct User {
+    string username;
+    string salt;
+    string hashedPassword;
+    int failedAttempts = 0;
+    bool locked = false;
+};
+
+unordered_map<string, User> database;
+
+// Register function
+void registerUser() {
+    string username, password;
+    cout << "Enter username: ";
+    cin >> username;
+
+    if (database.find(username) != database.end()) {
+        cout << "User already exists!\n";
+        return;
+    }
+
+    cout << "Enter password: ";
+    cin >> password;
+
+    string salt = generateSalt();
+    string hashed = hashPassword(password, salt);
+
+    database[username] = {username, salt, hashed};
+
+    cout << "User registered successfully!\n";
+}
+
+// Login function
+void loginUser() {
+    string username, password;
+    cout << "Enter username: ";
+    cin >> username;
+
+    if (database.find(username) == database.end()) {
+        cout << "User not found!\n";
+        return;
+    }
+
+    User &user = database[username];
+
+    if (user.locked) {
+        cout << "Account locked due to too many failed attempts!\n";
+        return;
+    }
+
+    cout << "Enter password: ";
+    cin >> password;
+
+    string hashed = hashPassword(password, user.salt);
+
+    if (hashed != user.hashedPassword) {
+        user.failedAttempts++;
+        cout << "Incorrect password!\n";
+
+        if (user.failedAttempts >= 3) {
+            user.locked = true;
+            cout << "Account locked!\n";
+        }
+        return;
+    }
+
+    // Reset attempts after successful login
+    user.failedAttempts = 0;
+
+    // MFA - OTP simulation
+    string otp = generateOTP();
+    cout << "OTP sent: " << otp << endl;
+
+    string userOTP;
+    cout << "Enter OTP: ";
+    cin >> userOTP;
+
+    if (userOTP == otp) {
+        cout << "Login successful!\n";
+    } else {
+        cout << "Invalid OTP!\n";
+    }
+}
+
+// Main menu
+int main() {
+    srand(time(0));
+
+    int choice;
+
+    while (true) {
+        cout << "\n=== Secure Login System ===\n";
+        cout << "1. Register\n";
+        cout << "2. Login\n";
+        cout << "3. Exit\n";
+        cout << "Choose: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1:
+                registerUser();
+                break;
+            case 2:
+                loginUser();
+                break;
+            case 3:
+                return 0;
+            default:
+                cout << "Invalid choice!\n";
+        }
+    }
+}
